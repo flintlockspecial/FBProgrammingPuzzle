@@ -1,6 +1,12 @@
 import zipfile
 import os
 
+def SetDirToBase():
+    ## Get the filepath to the base repo folder and set it as the OS directory
+    basefolder = os.path.dirname(os.path.dirname(__file__))
+    os.chdir(basefolder)
+
+
 def GetUserInputKMZFile():
     while True:
         infile = rf"{input('Please enter the path to your source KMZ file here: ')}"
@@ -15,10 +21,7 @@ def GetUserInputKMZFile():
 
 
 def ExtractKMZToKML():
-    ## Get the filepath to the base repo folder and set it as the OS directory
-    basefolder = os.path.dirname(os.path.dirname(__file__))
-    os.chdir(basefolder)
-
+    SetDirToBase()
     ## Verify that the folder for source data exists
     if os.path.exists("KMZ_Sourcefile"):
         ## Pull existing files into a list
@@ -58,6 +61,8 @@ def ExtractKMZToKML():
     with zipfile.ZipFile(os.path.join("KMZ_Sourcefile", finalKMZ),'r') as zip_ref:
         zip_ref.extractall("KMZ_Sourcefile")
 
+    
+
 
 def CompressKMLToKMZ(KMZName, KMLName="doc.kml"):
     """
@@ -70,3 +75,7 @@ def CompressKMLToKMZ(KMZName, KMLName="doc.kml"):
         os.mkdir("_Output")
     with zipfile.ZipFile(rf"_Output\{KMZName}", 'w') as zip_ref:
         zip_ref.write(rf"KMZ_Sourcefile\{KMLName}")
+
+
+if __name__ == "__main__":
+    ExtractKMZToKML()

@@ -1,2 +1,4 @@
 # Ignore the folder KMZ_Sourcefile
 KMZ_Sourcefile/*
+_Output/*
+src/OutputFromPyKMLGenerateScript.py
