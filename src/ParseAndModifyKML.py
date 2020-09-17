@@ -150,14 +150,16 @@ def Main():
             prevVertex[0], prevVertex[1]
         )
 
-        print(f"This vertex: {vertCount}")
-        print(f"Previous Distance: {dist}")
-        print(f"This Distance: {thisDist}")
-        print(f"Distance to previous vertex: {prevVertDist}")
+        ###print(f"This vertex: {vertCount}")
+        ###print(f"Previous Distance: {dist}")
+        ###print(f"This Distance: {thisDist}")
+        ###print(f"Distance to previous vertex: {prevVertDist}")
+        ###print()
 
         ## If the previous distance is nulled overwrite and continue
         if not dist:
-            print(f"Appending this vertex to coord list for segment {count}, Line Vertex: {vertCount}, Point Number: {pointCount}")
+            ###print(f"Appending this vertex to coord list for segment {count}, Line Vertex: {vertCount}, Point Number: {pointCount}")
+            ###print()
             currentSegmentCoords.append(thisVertex)
             dist = thisDist
         ## If the current distance to the next point is shorter than the previous,
@@ -165,7 +167,8 @@ def Main():
         ## from that vertex to the current point, set distance to the current check
         ## and proceed to the next coordinate pair
         elif dist and (thisDist < dist and dist > prevVertDist):
-            print(f"Appending this vertex to coord list for segment {count}, Line Vertex: {vertCount}, Point Number: {pointCount}")
+            ###print(f"Appending this vertex to coord list for segment {count}, Line Vertex: {vertCount}, Point Number: {pointCount}")
+            ###print()
             currentSegmentCoords.append(thisVertex)
             dist = thisDist
         ## If the current distance to the next point is longer than the previous,
@@ -173,8 +176,9 @@ def Main():
         ## from that vertex to the current point, the point has been overshot.
         ## Load a new Placemark section in lineCopy and reset the variables to
         ## continue this iteration
-        elif (dist and (thisDist > dist or dist < prevVertDist)) or (len(allPointCoords) == 0 and thisDist < 1):
-            print(f"Drawing segment {count}, Line Vertex: {vertCount}, Point Number: {pointCount}")
+        elif (dist and ((not thisDist or thisDist < 1) or (thisDist > dist or dist < prevVertDist))) or (len(allPointCoords) == 0 and thisDist < 1):
+            ###print(f"Drawing segment {count}, Line Vertex: {vertCount}, Point Number: {pointCount}")
+            ###print()
             if dist > 1:
                 currentSegmentCoords.append(thisPoint)
             ## Create new deepcopy of the template line Placemark
