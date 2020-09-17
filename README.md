@@ -17,8 +17,7 @@ The code is explained in depth in the comments. Basically it filters out, offset
     - [x] At 3 of the 4 right angles along the line, the calculations return a switchback rather than following the course of the line. I will need to determine if this is a problem with the line vertices themselves or with my calculation logic. Other than those two small errors, the outputs look great!\
     - [x] NEW PROBLEM: Switchbacks are fixed, but not the segments overshoot the point features after right angles by 1 vertex.\
         - Fixed by adding an additional condition checking for a measured distance to next vertex of 0. Vertices had been getting skipped before that by accident.\
-    - [x] NEW PROBLEM: Got distance measruements added to segments, but they seem to be about 20 meters short of the real measurement. Will need to diagnose the DistBetweenCoords function as well.
-
+    - [x] NEW PROBLEM: Got distance measruements added to segments, but they seem to be about 20 meters short of the real measurement. Will need to diagnose the DistBetweenCoords function as well.\
     - Turns out both the offset and distance measurement errors were because the coordinates are stored in KML as X,Y,Z rather than Lat(Y),Lon(X),Z. All I had to do was switch the referencing indices around when pulling the coordinates out and when rebuilding the coordinate strings, and it worked within the acceptable margin of error when considering projection onto a spherical Earth.
 
 Runtime on the sample file was 0.13 seconds. I do not anticipate that changing when errors are corrected.
