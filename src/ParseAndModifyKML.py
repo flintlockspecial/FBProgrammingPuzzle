@@ -27,8 +27,6 @@ def DistBetweenCoords(lat1, lon1, lat2, lon2):
     return distance
 
 
-## TODO : Figure out and fix the Offset funciton - why is 10 meters turning into 40?
-
 def OffsetCoordsByMeters(lat, lon, dn=10, de=10):
     ##Earth’s radius, sphere, meters
     R=6378137
@@ -42,7 +40,8 @@ def OffsetCoordsByMeters(lat, lon, dn=10, de=10):
 
 
 def Main():
-    SetDirToBase()
+    if os.path.basename(os.getcwd()) != "FBProgrammingPuzzle":
+        SetDirToBase()
 
     ## Parse the KML file and get to the root
     kml_file = r"KMZ_Sourcefile\doc.kml"
@@ -79,8 +78,8 @@ def Main():
     ## Get all point coordinates for use segmenting line
     allPointCoords = list(reversed([
         (
-            float(str(pm.Point.coordinates).split(",")[0]),
-            float(str(pm.Point.coordinates).split(",")[1]) 
+            float(str(pm.Point.coordinates).split(",")[1]),
+            float(str(pm.Point.coordinates).split(",")[0]) 
         ) for pm in pointPlacemarksSorted
     ]))
     
@@ -99,12 +98,12 @@ def Main():
     ## Offset the coordinates of all SPLICE HH records
     for placemark in pointCopy.findall(f"{ns}Placemark"):
         coords = [ 
-            float(str(placemark.Point.coordinates).split(",")[0]),
-            float(str(placemark.Point.coordinates).split(",")[1])
+            float(str(placemark.Point.coordinates).split(",")[1]),
+            float(str(placemark.Point.coordinates).split(",")[0])
         ]
         ## Offset the coordinates by the default of 10 meters
         coordsO = OffsetCoordsByMeters(coords[0], coords[1])
-        newCoordsString = f"{coordsO[0]},{coordsO[1]},0"
+        newCoordsString = f"{coordsO[1]},{coordsO[0]},0"
         placemark.Point.coordinates = newCoordsString
     
     ## Append the offset and reduced copy of the points layer to the SS_SpanD_HH.kml document
@@ -117,8 +116,8 @@ def Main():
     ## Pull floats of all the line coordinates
     allLineCoords = [
         (
-            float(str(coordTriplet).split(",")[0]),
-            float(str(coordTriplet).split(",")[1]) 
+            float(str(coordTriplet).split(",")[1]),
+            float(str(coordTriplet).split(",")[0]) 
         ) for coordTriplet in str(lineCopy.Placemark.LineString.coordinates).strip('[r"\t", r"\n"]').split(" ")
     ]
 
@@ -126,8 +125,6 @@ def Main():
     templateLinePlacemark = copy.deepcopy(lineCopy.Placemark)
     lineCopy.remove(lineCopy.Placemark)
     templateLinePlacemark.LineString.coordinates = ""
-
-    ## TODO: Why are switchbacks being drawn near right angles? Fix that!
 
     vertCount = 0
     pointCount = 1
@@ -150,16 +147,8 @@ def Main():
             prevVertex[0], prevVertex[1]
         )
 
-        ###print(f"This vertex: {vertCount}")
-        ###print(f"Previous Distance: {dist}")
-        ###print(f"This Distance: {thisDist}")
-        ###print(f"Distance to previous vertex: {prevVertDist}")
-        ###print()
-
         ## If the previous distance is nulled overwrite and continue
         if not dist:
-            ###print(f"Appending this vertex to coord list for segment {count}, Line Vertex: {vertCount}, Point Number: {pointCount}")
-            ###print()
             currentSegmentCoords.append(thisVertex)
             dist = thisDist
         ## If the current distance to the next point is shorter than the previous,
@@ -167,8 +156,6 @@ def Main():
         ## from that vertex to the current point, set distance to the current check
         ## and proceed to the next coordinate pair
         elif dist and (thisDist < dist and dist > prevVertDist):
-            ###print(f"Appending this vertex to coord list for segment {count}, Line Vertex: {vertCount}, Point Number: {pointCount}")
-            ###print()
             currentSegmentCoords.append(thisVertex)
             dist = thisDist
         ## If the current distance to the next point is longer than the previous,
@@ -184,12 +171,12 @@ def Main():
             ## Create new deepcopy of the template line Placemark
             ## and set the name based on the current segment count
             newSegment = copy.deepcopy(templateLinePlacemark)
-            newSegment.name = f"Southstar_Seg{count}"
+            newSegment.name = f"Southstar_Seg_{count}"
             ## Create the new coordinate string
             firstPair = currentSegmentCoords.pop(0)
-            coordstring = f"{firstPair[0]},{firstPair[1]},0"
+            coordstring = f"{firstPair[1]},{firstPair[0]},0"
             for coordPair in currentSegmentCoords:
-                coordstring += f" {coordPair[0]},{coordPair[1]},0"
+                coordstring += f" {coordPair[1]},{coordPair[0]},0"
             ## Set coordinates in new Placemark
             newSegment.LineString.coordinates = coordstring
             ## Set length value

@@ -9,7 +9,7 @@ def SetDirToBase():
 
 def GetUserInputKMZFile():
     while True:
-        infile = rf"{input('Please enter the path to your source KMZ file here: ')}"
+        infile = rf"{input('Please enter the path to your source KMZ file here: ')}".strip("""["']""")
         if os.path.exists(infile) and infile[-4:] == ".kmz":
             baseName = os.path.basename(infile)
             newPath = os.path.join("KMZ_Sourcefile", baseName)
@@ -21,7 +21,10 @@ def GetUserInputKMZFile():
 
 
 def ExtractKMZToKML():
-    SetDirToBase()
+    print(os.getcwd())
+
+    if os.path.basename(os.getcwd()) != "FBProgrammingPuzzle":
+        SetDirToBase()
     ## Verify that the folder for source data exists
     if os.path.exists("KMZ_Sourcefile"):
         ## Pull existing files into a list
