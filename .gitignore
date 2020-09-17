@@ -2,3 +2,4 @@
 KMZ_Sourcefile/*
 _Output/*
 src/OutputFromPyKMLGenerateScript.py
+*.pyc

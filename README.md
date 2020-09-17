@@ -11,6 +11,12 @@ This module contains functions for extracting and zipping KMZ files to KML and v
 - #### CompressKMLFileToKMZ:
     This function takes in the desired KMZ file name (i.e. Output.kmz) and, optionally, a specified KML file name (i.e. output.kml) and writes the KML file to the _Output subfolder of the repo folder structure, creating the subfolder if necessary. If no KML file is specified, it assumes the user intends to pack up doc.kml. The KML file **must** be in the KML_Sourcefile folder.
 
-### [TODO] ParseAndModifyKML.py
+### 2) ParseAndModifyKML.py
+The code is explained in depth in the comments. Basically it filters out, offsets, and creates a copy of the SPLICE Handhole point features, then iterates through all the line vertices and uses distance calculations to determine how to segment the line. Current errors include the following:
+    - [ ] Offset should be 10 meters, but is closer to 40.
+    - [ ] At 3 of the 4 right angles along the line, the calculations return a switchback rather than following the course of the line. I will need to determine if this is a problem with the line vertices themselves or with my calculation logic. Other than those two small errors, the outputs look great!
+Runtime on the sample file was 0.13 seconds. I do not anticipate that changing when errors are corrected. 
 
-### [TODO] RunProgrammingPuzzle.bat
+
+### 3) RunProgrammingPuzzle.bat
+Simply a batch file to run the python scripts. Assumes the user has Python 3 on the PATH variable with pykml installed

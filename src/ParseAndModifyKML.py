@@ -1,9 +1,12 @@
 import copy
 import os
+import time
 from ExtractAndZipKMZFiles import SetDirToBase, ExtractKMZToKML, CompressKMLToKMZ
 from lxml import etree
 from math import sin, cos, sqrt, atan2, radians, pi
 from pykml import parser
+
+t0 = time.time()
 
 def DistBetweenCoords(lat1, lon1, lat2, lon2):
     ## Approximate radius of earth in meters
@@ -24,6 +27,8 @@ def DistBetweenCoords(lat1, lon1, lat2, lon2):
     return distance
 
 
+## TODO : Figure out and fix the Offset funciton - why is 10 meters turning into 40?
+
 def OffsetCoordsByMeters(lat, lon, dn=10, de=10):
     ##Earth’s radius, sphere, meters
     R=6378137
@@ -39,8 +44,11 @@ def OffsetCoordsByMeters(lat, lon, dn=10, de=10):
 def Main():
     SetDirToBase()
 
+    ## Parse the KML file and get to the root
     kml_file = r"KMZ_Sourcefile\doc.kml"
-    doc = parser.parse(kml_file).getroot()
+    tree = parser.parse(kml_file)
+    doc = tree.getroot()
+
     ## Namespace tag will be necessary for any find operations
     ns = doc.tag.rstrip('kml')
 
@@ -60,17 +68,26 @@ def Main():
 
     pointPlacemarks = pointCopy.findall(f"{ns}Placemark")
 
+    ## Get sequential order of point Placemarks
+    pointPlacemarksSorted = sorted(
+        pointPlacemarks, 
+        key=lambda pm: int(
+            str(pm.ExtendedData.SchemaData.SimpleData).split(" ")[-1].lstrip("D")
+        )
+    )
+
     ## Get all point coordinates for use segmenting line
-    allPointCoords = [
+    allPointCoords = list(reversed([
         (
             float(str(pm.Point.coordinates).split(",")[0]),
             float(str(pm.Point.coordinates).split(",")[1]) 
-        ) for pm in pointPlacemarks]
+        ) for pm in pointPlacemarksSorted
+    ]))
     
     ## Remove all placemarks from pointCopy that aren't SPLICE HH
     for placemark in pointPlacemarks:
         delInd = False
-        for attr in pm.ExtendedData.SchemaData.iterchildren():
+        for attr in placemark.ExtendedData.SchemaData.iterchildren():
             if attr.values()[0] == 'HH_ID' and not "SPLICE" in str(attr):
                 delInd = True
         if delInd:
@@ -87,17 +104,94 @@ def Main():
         ]
         ## Offset the coordinates by the default of 10 meters
         coordsO = OffsetCoordsByMeters(coords[0], coords[1])
-        newCoordsString = f"{coordso[0]},{coordsO[1]},0"
+        newCoordsString = f"{coordsO[0]},{coordsO[1]},0"
         placemark.Point.coordinates = newCoordsString
     
     ## Append the offset and reduced copy of the points layer to the SS_SpanD_HH.kml document
     pointDocument.append(pointCopy)
     
-    ## TODO Code Logic
-    ## To segment line:
-    ##    Iterate through line vertices
-    ##      1) Check distance to next point vertex
-    ##      2) If distance less than previous, pop out into list for current segment
-    ##      3) If distance greater, pause and create segment from all vertices in current segment list, 
-    ##           final vertext being that of the point
-    ##      4) Continue on, comparing to next point
+    ## Segment the line feature
+    lineCopy = copy.deepcopy(linesDocument.Folder)
+    lineCopy.name = "SS_SpanD_RL_Segmented"
+
+    ## Pull floats of all the line coordinates
+    allLineCoords = [
+        (
+            float(str(coordTriplet).split(",")[0]),
+            float(str(coordTriplet).split(",")[1]) 
+        ) for coordTriplet in str(lineCopy.Placemark.LineString.coordinates).strip('[r"\t", r"\n"]').split(" ")
+    ]
+
+    ## Make a template copy of the Line Placemark, emptying the coordinate string
+    templateLinePlacemark = copy.deepcopy(lineCopy.Placemark)
+    lineCopy.remove(lineCopy.Placemark)
+    templateLinePlacemark.LineString.coordinates = ""
+
+    ## TODO: Why are switchbacks being drawn near right angles? Fix that!
+
+    count = 1
+    dist = None
+    currentSegmentCoords = [allLineCoords.pop(0)]
+    for thisVertex in allLineCoords:
+        ## Compare the current vertex to the next point along the line
+        thisPoint = allPointCoords[-1] if len(allPointCoords) > 0 else allLineCoords[-1]
+        thisDist = DistBetweenCoords(
+            thisVertex[0], thisVertex[1], 
+            thisPoint[0], thisPoint[1]
+        )
+
+        ## Get the previous line vertex for failsafe check
+        prevVertex = currentSegmentCoords[-1]
+        prevVertDist = DistBetweenCoords(
+            thisVertex[0], thisVertex[1], 
+            prevVertex[0], prevVertex[1]
+        )
+        ## If the previous distance is nulled overwrite and continue
+        if not dist:
+            currentSegmentCoords.append(thisVertex)
+            dist = thisDist
+        ## If the current distance to the next point is shorter than the previous,
+        ## and if the distance to the previous vertex is shorter than the distance
+        ## from that vertex to the current point, set distance to the current check
+        ## and proceed to the next coordinate pair
+        elif dist and (thisDist < dist and dist > prevVertDist):
+            currentSegmentCoords.append(thisVertex)
+            dist = thisDist
+        ## If the current distance to the next point is longer than the previous,
+        ## or if the distance to the previous vertex is longer than the distance
+        ## from that vertex to the current point, the point has been overshot.
+        ## Load a new Placemark section in lineCopy and reset the variables to
+        ## continue this iteration
+        elif (dist and (thisDist > dist or dist < prevVertDist)) or (len(allPointCoords) == 0 and thisDist == 0):
+            currentSegmentCoords.append(thisPoint)
+            ## Create new deepcopy of the template line Placemark
+            ## and set the name based on the current segment count
+            newSegment = copy.deepcopy(templateLinePlacemark)
+            newSegment.name = f"Southstar_Seg{count}"
+            ## Create the new coordinate string
+            firstPair = currentSegmentCoords.pop(0)
+            coordstring = f"{firstPair[0]},{firstPair[1]},0"
+            for coordPair in currentSegmentCoords:
+                coordstring += f" {coordPair[0]},{coordPair[1]},0"
+            ## Set coordinates in new Placemark
+            newSegment.LineString.coordinates = coordstring
+            lineCopy.append(newSegment)
+
+            ## Reset vertices if there are any more points to compare to
+            if len(allPointCoords) > 0:
+                count += 1
+                dist = None
+                currentSegmentCoords = [allPointCoords.pop()]
+
+    ## Append the copy of linesDocument to the root
+    linesDocument.append(lineCopy)
+
+    tree.write("KMZ_Sourcefile/output.kml")
+    CompressKMLToKMZ("FBProgrammingPuzzleOutput.kmz", "output.kml")
+
+if __name__ == '__main__':
+    Main()
+
+t1 = time.time()
+
+print(f"Elapsed time = {t1 - t0}")
