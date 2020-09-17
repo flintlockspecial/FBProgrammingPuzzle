@@ -73,6 +73,8 @@ def CompressKMLToKMZ(KMZName, KMLName="doc.kml"):
     ## Create ZipFile object in with structure and add KMLName to the zip repository
     if not os.path.exists("_Output"):
         os.mkdir("_Output")
+    if os.path.exists(rf"_Output\{KMZName}"):
+        os.remove(rf"_Output\{KMZName}")
     with zipfile.ZipFile(rf"_Output\{KMZName}", 'w') as zip_ref:
         zip_ref.write(rf"KMZ_Sourcefile\{KMLName}")
 

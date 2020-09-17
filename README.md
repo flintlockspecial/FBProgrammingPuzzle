@@ -14,7 +14,9 @@ This module contains functions for extracting and zipping KMZ files to KML and v
 ### 2) ParseAndModifyKML.py
 The code is explained in depth in the comments. Basically it filters out, offsets, and creates a copy of the SPLICE Handhole point features, then iterates through all the line vertices and uses distance calculations to determine how to segment the line. Current errors include the following:
     - [ ] Offset should be 10 meters, but is closer to 40.
-    - [ ] At 3 of the 4 right angles along the line, the calculations return a switchback rather than following the course of the line. I will need to determine if this is a problem with the line vertices themselves or with my calculation logic. Other than those two small errors, the outputs look great!
+    - [x] At 3 of the 4 right angles along the line, the calculations return a switchback rather than following the course of the line. I will need to determine if this is a problem with the line vertices themselves or with my calculation logic. Other than those two small errors, the outputs look great!
+    - [ ] NEW PROBLEM: Switchbacks are fixed, but not the segments overshoot the point features after right angles by 1 vertex.
+    - [ ] NEW PROBLEM: Got distance measruements added to segments, but they seem to be about 20 meters short of the real measurement. Will need to diagnose the DistBetweenCoords function as well.
 Runtime on the sample file was 0.13 seconds. I do not anticipate that changing when errors are corrected. 
 
 

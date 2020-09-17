@@ -129,10 +129,13 @@ def Main():
 
     ## TODO: Why are switchbacks being drawn near right angles? Fix that!
 
+    vertCount = 0
+    pointCount = 1
     count = 1
     dist = None
     currentSegmentCoords = [allLineCoords.pop(0)]
     for thisVertex in allLineCoords:
+        vertCount += 1
         ## Compare the current vertex to the next point along the line
         thisPoint = allPointCoords[-1] if len(allPointCoords) > 0 else allLineCoords[-1]
         thisDist = DistBetweenCoords(
@@ -146,8 +149,15 @@ def Main():
             thisVertex[0], thisVertex[1], 
             prevVertex[0], prevVertex[1]
         )
+
+        print(f"This vertex: {vertCount}")
+        print(f"Previous Distance: {dist}")
+        print(f"This Distance: {thisDist}")
+        print(f"Distance to previous vertex: {prevVertDist}")
+
         ## If the previous distance is nulled overwrite and continue
         if not dist:
+            print(f"Appending this vertex to coord list for segment {count}, Line Vertex: {vertCount}, Point Number: {pointCount}")
             currentSegmentCoords.append(thisVertex)
             dist = thisDist
         ## If the current distance to the next point is shorter than the previous,
@@ -155,6 +165,7 @@ def Main():
         ## from that vertex to the current point, set distance to the current check
         ## and proceed to the next coordinate pair
         elif dist and (thisDist < dist and dist > prevVertDist):
+            print(f"Appending this vertex to coord list for segment {count}, Line Vertex: {vertCount}, Point Number: {pointCount}")
             currentSegmentCoords.append(thisVertex)
             dist = thisDist
         ## If the current distance to the next point is longer than the previous,
@@ -162,8 +173,10 @@ def Main():
         ## from that vertex to the current point, the point has been overshot.
         ## Load a new Placemark section in lineCopy and reset the variables to
         ## continue this iteration
-        elif (dist and (thisDist > dist or dist < prevVertDist)) or (len(allPointCoords) == 0 and thisDist == 0):
-            currentSegmentCoords.append(thisPoint)
+        elif (dist and (thisDist > dist or dist < prevVertDist)) or (len(allPointCoords) == 0 and thisDist < 1):
+            print(f"Drawing segment {count}, Line Vertex: {vertCount}, Point Number: {pointCount}")
+            if dist > 1:
+                currentSegmentCoords.append(thisPoint)
             ## Create new deepcopy of the template line Placemark
             ## and set the name based on the current segment count
             newSegment = copy.deepcopy(templateLinePlacemark)
@@ -175,17 +188,39 @@ def Main():
                 coordstring += f" {coordPair[0]},{coordPair[1]},0"
             ## Set coordinates in new Placemark
             newSegment.LineString.coordinates = coordstring
+            ## Set length value
+            length = 0
+            for i, thisCoord in enumerate(currentSegmentCoords):
+                try: 
+                    nextCoord = currentSegmentCoords[i+1]
+                except: 
+                    break
+                length += DistBetweenCoords(
+                    thisCoord[0], thisCoord[1], 
+                    nextCoord[0], nextCoord[1]
+                )
+            for attr in newSegment.ExtendedData.SchemaData.getchildren():
+                if attr.values()[0] == "length":
+                    attr._setText(f'{length * .00062137119224}')
             lineCopy.append(newSegment)
 
             ## Reset vertices if there are any more points to compare to
             if len(allPointCoords) > 0:
                 count += 1
-                dist = None
-                currentSegmentCoords = [allPointCoords.pop()]
+                currentSegmentCoords = [allPointCoords.pop(), thisVertex]
+                pointCount += 1
+                if len(allPointCoords) > 0:
+                    nextPoint = allPointCoords[-1]
+                    dist = DistBetweenCoords(
+                        thisVertex[0], thisVertex[1], 
+                        nextPoint[0], nextPoint[1]
+                    )
 
     ## Append the copy of linesDocument to the root
     linesDocument.append(lineCopy)
 
+    if os.path.exists("KMZ_Sourcefile/output.kml"):
+        os.remove("KMZ_Sourcefile/output.kml")
     tree.write("KMZ_Sourcefile/output.kml")
     CompressKMLToKMZ("FBProgrammingPuzzleOutput.kmz", "output.kml")
 
